@@ -4,10 +4,11 @@
 PYTHON := python3
 PIP := pip3
 VENV := venv
+PROJECT_ROOT := $(shell pwd)
 
 help: ## Mostrar ayuda
 	@echo "Comandos disponibles:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $1, $2}'
 
 install: ## Instalar dependencias
 	$(PIP) install -r requirements.txt
@@ -20,14 +21,17 @@ setup-venv: ## Crear y configurar entorno virtual
 	$(PYTHON) -m venv $(VENV)
 	@echo "Activa el entorno virtual con: source $(VENV)/bin/activate"
 
+check: ## Verificar instalación
+	PYTHONPATH=$(PROJECT_ROOT) $(PYTHON) check_installation.py
+
 download-data: ## Descargar dataset desde HuggingFace
-	$(PYTHON) src/download_data.py
+	PYTHONPATH=$(PROJECT_ROOT) $(PYTHON) src/download_data.py
 
 train: ## Entrenar modelo NER
-	$(PYTHON) src/train.py
+	PYTHONPATH=$(PROJECT_ROOT) $(PYTHON) src/train.py
 
 evaluate: ## Evaluar modelo entrenado
-	$(PYTHON) src/evaluate.py
+	PYTHONPATH=$(PROJECT_ROOT) $(PYTHON) src/test_model.py
 
 clean: ## Limpiar archivos temporales
 	find . -type f -name "*.pyc" -delete

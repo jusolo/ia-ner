@@ -39,28 +39,121 @@ def tokenize_and_align_labels(examples, tokenizer, config):
 
 def get_label_names(dataset_split):
     """
-    Extraer nombres de labels del dataset
+    Extraer nombres de labels del dataset - versión mejorada
     """
-    # Para CoNLL-2003, los labels son:
+    try:
+        # Intentar obtener labels desde las features del dataset
+        if hasattr(dataset_split, 'features'):
+            # Buscar la columna de labels
+            label_columns = ['ner_tags', 'labels', 'tags', 'tag', 'ner']
+            for col in label_columns:
+                if col in dataset_split.features:
+                    feature = dataset_split.features[col]
+                    if hasattr(feature, 'feature') and hasattr(feature.feature, 'names'):
+                        print(f"Labels extraídos desde features.{col}")
+                        return feature.feature.names
+        
+        # Si no funciona, obtener labels únicos del dataset
+        print("Extrayendo labels únicos del dataset...")
+        all_labels = set()
+        label_columns = ['ner_tags', 'labels', 'tags', 'tag', 'ner']
+        
+        # Detectar la columna de labels
+        available_columns = dataset_split.column_names
+        label_column = None
+        for col in label_columns:
+            if col in available_columns:
+                label_column = col
+                break
+        
+        if not label_column:
+            print(f"❌ No se encontró columna de labels en {available_columns}")
+            # Usar labels por defecto
+            return get_default_labels()
+        
+        print(f"Usando columna de labels: {label_column}")
+        
+        sample_size = min(1000, len(dataset_split))  # Muestra de 1000 ejemplos
+        for i in range(sample_size):
+            example = dataset_split[i]
+            if label_column in example and example[label_column] is not None:
+                labels = example[label_column]
+                if isinstance(labels, list):
+                    all_labels.update(labels)
+                else:
+                    all_labels.add(labels)
+        
+        # Convertir números a labels IOB si es necesario
+        if all(isinstance(label, int) for label in all_labels):
+            # Para datasets con números, mapear a IOB2
+            max_label = max(all_labels)
+            print(f"Labels numéricos encontrados: 0-{max_label}")
+            
+            # Crear mapeo IOB2 estándar sin duplicados
+            if max_label <= 8:  # Esquema IOB2 estándar
+                id2label = {
+                    0: "O",
+                    1: "B-PER", 2: "I-PER",
+                    3: "B-ORG", 4: "I-ORG", 
+                    5: "B-LOC", 6: "I-LOC",
+                    7: "B-MISC", 8: "I-MISC"
+                }
+            else:  # Dataset con más labels
+                id2label = {0: "O"}
+                entity_types = ['PER', 'ORG', 'LOC', 'MISC']
+                label_idx = 1
+                
+                # Crear pares B- e I- sin duplicados
+                for entity_type in entity_types:
+                    if label_idx <= max_label:
+                        id2label[label_idx] = f"B-{entity_type}"
+                        label_idx += 1
+                    if label_idx <= max_label:
+                        id2label[label_idx] = f"I-{entity_type}"
+                        label_idx += 1
+                
+                # Completar con labels genéricos si quedan
+                while label_idx <= max_label:
+                    id2label[label_idx] = f"LABEL_{label_idx}"
+                    label_idx += 1
+            
+            # Crear lista sin duplicados manteniendo orden
+            label_names = []
+            for i in range(max_label + 1):
+                label = id2label.get(i, f"LABEL_{i}")
+                if label not in label_names:  # Evitar duplicados
+                    label_names.append(label)
+            
+            print(f"Labels mapeados desde números: {label_names}")
+            return label_names
+        else:
+            # Labels ya son strings
+            label_names = sorted(list(set(all_labels)))  # Remover duplicados y ordenar
+            print(f"Labels como strings: {label_names}")
+            return label_names
+            
+    except Exception as e:
+        print(f"Error extrayendo labels: {e}")
+        import traceback
+        traceback.print_exc()
+        
+    # Labels por defecto
+    return get_default_labels()
+
+def get_default_labels():
+    """Obtener labels por defecto para NER español (IOB2)"""
+    print("Usando labels por defecto para NER español...")
     label_names = [
         "O",       # Outside
-        "B-PER",   # Beginning Person
+        "B-PER",   # Beginning Person (Persona)
         "I-PER",   # Inside Person  
-        "B-ORG",   # Beginning Organization
+        "B-ORG",   # Beginning Organization (Organización)
         "I-ORG",   # Inside Organization
-        "B-LOC",   # Beginning Location
+        "B-LOC",   # Beginning Location (Localización)
         "I-LOC",   # Inside Location
-        "B-MISC",  # Beginning Miscellaneous
+        "B-MISC",  # Beginning Miscellaneous (Miscelánea)
         "I-MISC"   # Inside Miscellaneous
     ]
-    
-    # Si el dataset tiene información de features, usar esa
-    if hasattr(dataset_split, 'features'):
-        if 'ner_tags' in dataset_split.features:
-            feature = dataset_split.features['ner_tags']
-            if hasattr(feature, 'feature') and hasattr(feature.feature, 'names'):
-                return feature.feature.names
-    
     return label_names
 
 def prepare_data_splits(dataset, config):

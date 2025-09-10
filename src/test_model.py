@@ -4,17 +4,42 @@ Script para evaluar modelos NER entrenados
 """
 
 import os
+import sys
 import yaml
 import torch
+
+# Configurar rutas correctamente
+def setup_paths():
+    """Configurar las rutas del proyecto"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    
+    os.chdir(project_root)
+    return project_root
+
+# Configurar rutas antes de imports
+project_root = setup_paths()
+
 from datasets import load_from_disk, load_dataset
 from transformers import (
     AutoTokenizer, 
     AutoModelForTokenClassification,
     pipeline
 )
-import evaluate
-from utils.data_utils import tokenize_and_align_labels, get_label_names
-from utils.model_utils import compute_metrics
+
+# Ahora los imports de utils deberían funcionar
+try:
+    from utils.data_utils import tokenize_and_align_labels, get_label_names
+    from utils.model_utils import compute_metrics
+    print("✅ Imports de utils exitosos")
+except ImportError as e:
+    print(f"❌ Error importando utils: {e}")
+    print(f"Directorio actual: {os.getcwd()}")
+    sys.exit(1)
+
 import pandas as pd
 
 def load_config():
@@ -39,11 +64,14 @@ def evaluate_model(config):
     
     # Cargar dataset de test
     try:
-        dataset_path = os.path.join(config['data_paths']['raw_data'], config['dataset']['name'])
+        # Normalizar el nombre del dataset para el path local
+        dataset_name_path = config['dataset']['name'].replace('/', '_')
+        dataset_path = os.path.join(config['data_paths']['raw_data'], dataset_name_path)
+        
         if os.path.exists(dataset_path):
             dataset = load_from_disk(dataset_path)
         else:
-            dataset = load_dataset(config['dataset']['name'])
+            dataset = load_dataset(config['dataset']['name'], trust_remote_code=True)
     except Exception as e:
         print(f"Error cargando dataset: {e}")
         return None
@@ -138,11 +166,13 @@ def main():
         print("EVALUACIÓN COMPLETADA")
         print("="*50)
     
-    # Textos de ejemplo para probar
+    # Textos de ejemplo para probar en español
     test_texts = [
-        "Mi nombre es Juan Pérez y vivo en Madrid, España.",
-        "Apple Inc. fue fundada por Steve Jobs en California.",
-        "La reunión es el próximo lunes a las 3:00 PM."
+        "Mi nombre es Juan Pérez y trabajo en el Banco de España en Madrid.",
+        "Apple Inc. fue fundada por Steve Jobs en California, Estados Unidos.",
+        "La reunión será el próximo lunes en las oficinas de Telefónica en Barcelona.",
+        "El presidente Pedro Sánchez visitará la Universidad Complutense de Madrid.",
+        "Google España tiene su sede en Madrid y emplea a más de mil personas."
     ]
     
     test_custom_text(config, test_texts)

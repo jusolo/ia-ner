@@ -70,15 +70,16 @@ Edita el archivo `config.yaml` para personalizar:
 - **Hiperparámetros**: Ajusta learning rate, batch size, epochs, etc.
 - **Rutas**: Modifica las rutas de datos y modelos
 
-### Ejemplos de modelos populares:
+### Ejemplos de modelos populares para español:
+- `PlanTL-GOB-ES/roberta-base-bne` (recomendado)
+- `dccuchile/bert-base-spanish-wwm-cased`
+- `BSC-TeMU/roberta-base-bne`
 - `bert-base-multilingual-cased`
-- `distilbert-base-multilingual-cased`
-- `roberta-base`
-- `microsoft/DialoGPT-medium`
 
 ### Ejemplos de datasets populares:
+- `PlanTL-GOB-ES/CoNLL-NERC-es` (español - recomendado)
 - `conll2003` (inglés)
-- `conll2002` (español, holandés)
+- `conll2002` (español, holandés)  
 - `wikiner_en`
 - `wikiann` (multiidioma)
 
@@ -86,12 +87,21 @@ Edita el archivo `config.yaml` para personalizar:
 
 ```bash
 make help              # Mostrar todos los comandos
+make check             # Verificar instalación
 make install           # Instalar dependencias
 make download-data     # Descargar dataset
 make train             # Entrenar modelo
-make evaluate          # Evaluar modelo
+make evaluate          # Evaluar modelo (test_model.py)
 make clean             # Limpiar archivos temporales
 make clean-all         # Limpiar todo (datos, modelos, temp)
+```
+
+## Scripts Adicionales
+
+```bash
+python test_simple.py     # Probar que todo funciona
+python quick_start.py     # Pipeline completo automatizado
+python src/test_model.py  # Evaluar modelo entrenado
 ```
 
 ## Personalización

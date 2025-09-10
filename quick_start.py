@@ -43,6 +43,12 @@ def main():
         print("Asegúrate de estar en el directorio del proyecto")
         sys.exit(1)
     
+    # Paso 0: Verificar instalación
+    print("\n🔍 Verificando instalación...")
+    if not run_command("python check_installation.py", "Verificando dependencias"):
+        print("❌ Hay problemas con las dependencias. Ejecuta 'make install' primero.")
+        sys.exit(1)
+    
     # Paso 1: Descargar datos
     if not run_command("python src/download_data.py", "Descargando dataset"):
         print("❌ Error descargando datos. Abortando.")
@@ -67,7 +73,7 @@ def main():
     print("\nPróximos pasos:")
     print("- Revisa los resultados de evaluación arriba")
     print("- Modifica config.yaml para experimentar")  
-    print("- Usa 'python src/evaluate.py' para probar con nuevo texto")
+    print("- Usa 'python src/test_model.py' para probar con nuevo texto")
     print("- Ejecuta 'make help' para ver más comandos")
 
 if __name__ == "__main__":
